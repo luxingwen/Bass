@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/luxingwen/Bass/config"
-	log "github.com/sirupsen/logrus"
+	// log "github.com/sirupsen/logrus"
 
 	"github.com/luxingwen/Bass/router"
 )
@@ -19,6 +19,6 @@ func main() {
 		WriteTimeout:   120 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	log.SetLevel(log.DebugLevel)
+	// log.SetLevel(log.DebugLevel)
 	s.ListenAndServe()
 }
