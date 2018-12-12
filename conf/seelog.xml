@@ -1,0 +1,13 @@
+<seelog type="asynctimer" asyncinterval="5000000" minlevel="trace" maxlevel="critical">
+    <outputs formatid="main">
+        <filter levels="trace,debug,info,warn,error,critical">
+        <buffered size="10000" flushperiod="1000">
+            <rollingfile type="date" filename="log/run.log" datepattern="20060102" maxrolls="30"/>
+        </buffered>
+        </filter>
+    </outputs>
+    <formats>
+        <format id="main" format="%Time|%LEV|%File|%Line|%Msg%n"/>
+    </formats>
+</seelog>
+<!-- https://blog.csdn.net/u010649766/article/details/79261173 -->

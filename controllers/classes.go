@@ -3,28 +3,33 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+
 	"net/http"
 	"strconv"
 	"strings"
 
+	log "github.com/cihub/seelog"
 	"github.com/gin-gonic/gin"
 	"github.com/luxingwen/Bass/models"
 )
 
 // 数据库操作控制器
-func UserRegister(router *gin.RouterGroup) {
-	router.GET("/", Hello)
-	router.GET("/classes/:tableName", GetAllClasses)
-	router.POST("/classes/:tableName", PostClasses)
-	router.GET("/classes/:tableName/:id", GetClasses)
-	router.PUT("/classes/:tableName/:id", PutClasses)
-	router.DELETE("/classes/:tableName/:id", DeleteClasses)
-
-}
+// func UserRegister(router *gin.RouterGroup) {
+// 	router.GET("/hello", Hellos)
+// 	router.GET("/classes/:tableName", GetAllClasses)
+// 	router.POST("/classes/:tableName", PostClasses)
+// 	router.GET("/classes/:tableName/:id", GetClasses)
+// 	router.PUT("/classes/:tableName/:id", PutClasses)
+// 	router.DELETE("/classes/:tableName/:id", DeleteClasses)
+// }
 
 // 测试
-func Hello(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"code": 200, "msg": "hello"})
+func Hellos(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"success": true, "code": 200, "msg": "hello"})
+
+	// var k BaseController
+	// k.response("错误", "test")
+
 }
 
 // 删除一条记录
@@ -36,6 +41,7 @@ func DeleteClasses(c *gin.Context) {
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		return
+
 	}
 
 	type tableId struct {
@@ -44,10 +50,10 @@ func DeleteClasses(c *gin.Context) {
 	k := &tableId{Id: id}
 	affected, err := db2.Table(tableName).Delete(k)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"code": 101, "msg": err})
+		c.JSON(http.StatusOK, gin.H{"success": false, "code": 101, "msg": err})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 200, "msg": "ok", "status": affected})
+	c.JSON(http.StatusOK, gin.H{"success": true, "code": 200, "msg": "ok", "status": affected})
 }
 
 // 修改一条记录
@@ -62,10 +68,10 @@ func PutClasses(c *gin.Context) {
 		return
 	}
 
-	bodyS, _ := c.GetRawData()
+	content, _ := c.GetRawData()
 
 	m := make(map[string]interface{})
-	err = json.Unmarshal(bodyS, &m)
+	err = json.Unmarshal(content, &m)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"code": 101, "msg": err})
 		return
@@ -74,10 +80,10 @@ func PutClasses(c *gin.Context) {
 	affected, err := db.Table(tableName).Where("id=?", id).Update(m)
 
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"code": 101, "msg": err})
+		c.JSON(http.StatusOK, gin.H{"success": false, "code": 101, "msg": err})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 200, "msg": "ok", "result": affected})
+	c.JSON(http.StatusOK, gin.H{"success": true, "code": 200, "msg": "ok", "data": affected})
 }
 
 // 获取一行记录
@@ -89,20 +95,20 @@ func GetClasses(c *gin.Context) {
 	limit := 1
 	offset := 0
 
-	fmt.Println("limit", limit, offset)
-
 	type result map[string]*string
 	var results []result
 
 	db.Table(tableName).AllCols().Where("id=?", id).Limit(limit, offset).Find(&results)
 
 	if len(results) < 1 {
-		c.JSON(http.StatusOK, gin.H{"code": 101, "msg": "未找到记录"})
+		c.JSON(http.StatusOK, gin.H{"success": false, "code": 101, "msg": "未找到记录"})
+		log.Errorf("%s未找到记录", tableName)
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"results": results,
+		"success": true,
+		"data":    results,
 	})
 }
 
@@ -114,13 +120,12 @@ func GetClasses(c *gin.Context) {
 func PostClasses(c *gin.Context) {
 	db2 := models.GetDB()
 	tableName := c.Param("tableName")
-	bodyS, _ := c.GetRawData()
+	bodyRaw, _ := c.GetRawData()
 
 	m := make(map[string]interface{})
-	err := json.Unmarshal(bodyS, &m)
+	err := json.Unmarshal(bodyRaw, &m)
 
 	msg := "ok"
-	fmt.Println(err)
 
 	// /*  INSERT INTO `abc_models` (`id`, `created_at`, `updated_at`, `deleted_at`, `slug`, `title`, `description`, `body`, `author_id`) VALUES (NULL, NULL, NULL, NULL, NULL, '334', NULL, NULL, NULL);
 	sqlf := "INSERT INTO `%s`(%s) VALUES (%s)"
@@ -152,12 +157,13 @@ func PostClasses(c *gin.Context) {
 	results, err := db2.Query(sql)
 	if err != nil {
 		msg = err.Error()
-		fmt.Println("err", err)
-
+		log.Errorf("err:%s ", msg)
+		c.JSON(http.StatusOK, gin.H{"success": false, "code": 200, "msg": msg})
+		return
 	}
 
 	fmt.Println("bb", values, fields, results)
-	c.JSON(http.StatusOK, gin.H{"code": 200, "msg": msg})
+	c.JSON(http.StatusOK, gin.H{"success": true, "code": 200, "msg": msg})
 }
 
 // 获取所有记录列表
@@ -185,5 +191,5 @@ func GetAllClasses(c *gin.Context) {
 
 	db2.Table(tableName).AllCols().Limit(limit, offset).Find(&info)
 
-	c.JSON(http.StatusOK, gin.H{"info": info, "Count": 3})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": info})
 }
